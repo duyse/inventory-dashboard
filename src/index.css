@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface-900: var(--surf-900);
+  --color-surface-800: var(--surf-800);
+  --color-surface-700: var(--surf-700);
+  --color-surface-600: var(--surf-600);
+  --color-surface-500: var(--surf-500);
+
+  --color-text-primary: var(--txt-primary);
+  --color-text-secondary: var(--txt-secondary);
+  --color-text-muted: var(--txt-muted);
+
+  --color-accent-500: var(--acc-500);
+  --color-accent-400: var(--acc-400);
+  --color-accent-300: var(--acc-300);
+
+  --color-amber-glow: #f59e0b;
+  --color-amber-soft: rgba(245, 158, 11, 0.08);
+  --color-amber-border: rgba(245, 158, 11, 0.25);
+
+  --color-red-glow: #ef4444;
+  --color-red-soft: rgba(239, 68, 68, 0.08);
+  --color-red-border: rgba(239, 68, 68, 0.25);
+
+  --color-green-glow: #22c55e;
+  --color-green-soft: rgba(34, 197, 94, 0.08);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --surf-900: #f8fafc;
+  --surf-800: #ffffff;
+  --surf-700: #f1f5f9;
+  --surf-600: #e2e8f0;
+  --surf-500: #cbd5e1;
+
+  --txt-primary: #0f172a;
+  --txt-secondary: #334155;
+  --txt-muted: #64748b;
+
+  --acc-500: #4f46e5;
+  --acc-400: #6366f1;
+  --acc-300: #818cf8;
+}
+
+.dark {
+  --surf-900: #0b0f19;
+  --surf-800: #111827;
+  --surf-700: #1e2740;
+  --surf-600: #283352;
+  --surf-500: #374766;
+
+  --txt-primary: #f1f5f9;
+  --txt-secondary: #94a3b8;
+  --txt-muted: #64748b;
+
+  --acc-500: #6366f1;
+  --acc-400: #818cf8;
+  --acc-300: #a5b4fc;
+}
+
+/* ─── Base ──────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-surface-900);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-600);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-500);
+}
+
+/* ─── Utility Animations ────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--color-surface-700) 25%, var(--color-surface-600) 50%, var(--color-surface-700) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

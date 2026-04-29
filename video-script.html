@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Video Recording Script — Intelligent Inventory Dashboard</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1.25rem; color: #1f2937; line-height: 1.55; }
+  h1 { border-bottom: 2px solid #2563eb; padding-bottom: .4rem; }
+  h2 { color: #1e40af; margin-top: 2rem; }
+  .meta { background: #f3f4f6; padding: .75rem 1rem; border-left: 4px solid #2563eb; border-radius: 4px; font-size: .9rem; }
+  .time { color: #6b7280; font-weight: 600; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; }
+  .cue { background: #fef3c7; padding: .5rem .75rem; border-radius: 4px; font-size: .88rem; margin: .5rem 0; }
+  .script { background: #ffffff; border: 1px solid #e5e7eb; padding: 1rem 1.25rem; border-radius: 6px; margin: .5rem 0 1rem; }
+  ul { padding-left: 1.25rem; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: .9em; }
+</style>
+</head>
+<body>
+
+<h1>Video Recording Script</h1>
+<p class="meta">
+  <strong>Project:</strong> Intelligent Inventory Dashboard (Scenario B)<br />
+  <strong>Presenter:</strong> Duy Nguyen<br />
+  <strong>Target length:</strong> 5–10 minutes<br />
+  <strong>Date:</strong> 29 April 2026
+</p>
+
+<h2>1. Introduction <span class="time">(0:00 – 0:45)</span></h2>
+<div class="cue">On camera. Webcam tile + title slide showing project name.</div>
+<div class="script">
+  <p>Hi, I'm Duy Nguyen. Thanks for taking the time to review my submission.</p>
+  <p>I picked <strong>Scenario B — the Intelligent Inventory Dashboard</strong>. The job in plain English: dealership managers need one screen that shows every car on their lot, lets them filter it, makes anything sitting longer than ninety days stand out, and lets them write down what they plan to do about it — and that note has to still be there tomorrow.</p>
+  <p>So at its core it's a small CRUD app with one interesting business rule and one interesting filter surface. I designed it to match that, not to look like a system five times its size. In the next few minutes I'll walk you through the design, the implementation, how I worked with AI on it, a quick demo, and what I learned.</p>
+</div>
+
+<h2>2. System Design Walkthrough <span class="time">(0:45 – 3:00)</span></h2>
+<div class="cue">Screen share: <code>system-design.md</code> + architecture diagram.</div>
+<div class="script">
+  <p><strong>Assumptions first</strong>, because the brief is intentionally vague:</p>
+  <ul>
+    <li><strong>Multi-dealership from day one</strong> — every vehicle is scoped to a <code>dealershipId</code>. Auth isn't built, but the data model is ready for it.</li>
+    <li><strong>Age = <code>now − received_at</code></strong>. The 90-day threshold is a config value, not a magic number.</li>
+    <li><strong>Inventory is read-heavy</strong> — managers view far more than vehicles arrive. Optimise for fast reads, simple writes.</li>
+    <li><strong>One current status per vehicle, plus history</strong> — append-only audit log alongside a denormalised current-status column.</li>
+    <li><strong>Realistic scale</strong> — hundreds to a few thousand vehicles per dealership. Not a web-scale problem.</li>
+  </ul>
+  <p><strong>Architecture:</strong> a stateless Express + TypeScript API in front of one PostgreSQL database, with Pino structured logs and prom-client RED metrics. When traffic grows I run more API copies behind a load balancer; Postgres scales vertically and later with read replicas.</p>
+  <p><strong>The key design call</strong> is computing <code>isAging</code> on read, not storing it. It's always correct, no nightly cron job, and the cost is one subtraction per row.</p>
+  <p><strong>Writes happen in a single transaction</strong> — insert into the immutable <code>vehicle_actions</code> history, update the denormalised current status on <code>vehicles</code>. History gives me audit; the column keeps the dashboard query a single SELECT with no join. Indexes are on <code>(dealership_id, received_at)</code> and <code>(dealership_id, make, model)</code> — the two queries that actually matter.</p>
+  <p><strong>Things I deliberately did not pick:</strong> microservices, a message queue, Redis, GraphQL, Kubernetes. Each one would be operational tax with no benefit at this size. I'd rather start small and add things when a metric tells me to.</p>
+</div>
+
+<h2>3. Implementation Highlights <span class="time">(3:00 – 4:15)</span></h2>
+<div class="cue">Screen share: VS Code — show <code>src/types.ts</code>, <code>src/api.ts</code>, <code>src/server.ts</code>, a component file.</div>
+<div class="script">
+  <p>The submission is a React + Vite + TypeScript SPA in strict mode, styled with Tailwind, data-fetched with TanStack Query, and backed by an Express mock backend plus MSW for browser interception. Tests are Jest with ts-jest.</p>
+  <p>A few things I want to call out:</p>
+  <ul>
+    <li><strong>Strictly typed API boundary</strong> — <code>Vehicle</code>, status enum, and request/response shapes live in <code>src/types.ts</code> and are shared by the client, the mock server, and the tests. If the contract drifts, the app simply doesn't compile.</li>
+    <li><strong>TanStack Query handles loading, error, and refetch</strong> after a status update, so the UI stays in sync without me hand-rolling cache logic.</li>
+    <li><strong>Aging logic in one place</strong> — the mock server computes <code>isAging</code>, exactly like the real API would. The frontend just renders the flag.</li>
+    <li><strong>Tests are targeted, not ceremonial</strong> — API client, mock routes, and the filter/age utilities. No fragile UI snapshot tests.</li>
+  </ul>
+</div>
+
+<h2>4. AI Collaboration Story <span class="time">(4:15 – 5:30)</span></h2>
+<div class="cue">Back to camera, or split screen with README's "AI Collaboration" section.</div>
+<div class="script">
+  <p>I treated AI as a fast but literal pair, never as the author. My loop had three rules.</p>
+  <p><strong>Design before code.</strong> I wrote the problem in my own words first, in <code>build.md</code> and <code>system-design.md</code>, before letting an AI talk at me. Then I asked for <em>critique</em>, not solutions — prompts like <em>"here's my data model, what am I missing?"</em> That surfaced things like timezone questions on <code>received_at</code>.</p>
+  <p><strong>Generate wide, then cut.</strong> I asked for every observability signal you'd want for a system like this — and then deleted about seventy percent. Picking what <em>not</em> to include was my job.</p>
+  <p><strong>Verify everything.</strong> Every line of generated code got read in full, type-checked, tested, and clicked through in the browser. Where I overruled the AI: it suggested a materialised view for aging stock, microservices, and OpenTelemetry from day one. I rejected all three with reasons documented in section 13 of the design doc. The engineering judgement — what to throw away — is the part that has my name on it.</p>
+</div>
+
+<h2>5. Application Demo <span class="time">(5:30 – 7:30)</span></h2>
+<div class="cue">Screen share: browser at <code>http://localhost:5174</code>. Run <code>npm run dev</code> beforehand.</div>
+<div class="script">
+  <p>Here's the dashboard for dealership 42. The filter bar at the top lets me narrow by make, model, and a "show aging stock only" toggle.</p>
+  <p>The table shows VIN, make, model, year, price, days in inventory, and current status. <strong>Notice the amber-flagged rows</strong> — those are the aging ones, more than ninety days on the lot. That's <code>isAging</code> coming straight from the API.</p>
+  <p>Let me flip the "aging only" toggle — the list narrows to just the cars that need attention.</p>
+  <p>Now I'll click <strong>Edit Action</strong> on this aging row. The modal opens with a status dropdown — Price Reduction Planned, Send to Auction, In Repair — and a note field. I'll set it to <em>Price Reduction Planned</em>, add the note <em>"Drop price by 5%"</em>, and submit.</p>
+  <p>The PATCH fires, TanStack Query refetches, and you can see the row's status update live. If I refresh the page, the note is still there — that's the persistence requirement satisfied.</p>
+</div>
+
+<h2>6. What I Learned &amp; Challenges <span class="time">(7:30 – 9:00)</span></h2>
+<div class="cue">On camera. Closing slide.</div>
+<div class="script">
+  <p>Three things stuck with me.</p>
+  <p><strong>The hardest part of the design wasn't what to add — it was what to leave out.</strong> The AI was happy to suggest Redis, Kafka, microservices, OpenTelemetry. Resisting that, and writing down honest reasons against each, was more valuable than any of those tools would have been at this size.</p>
+  <p><strong>Computing <code>isAging</code> on read is a small decision that pays back constantly.</strong> No cron, no staleness, no "why is this car still flagged" support tickets. Boring is good.</p>
+  <p><strong>Challenges:</strong> getting MSW and the Express mock server to agree on the exact same response shape was fiddlier than I expected — I solved it by making both consume the same TypeScript types from <code>src/types.ts</code>, so any divergence becomes a compile error. The other one was discipline with AI output: it's easy to accept a clean-looking diff that quietly adds defensive code for impossible errors. I rejected those passes and asked for the simplest version every time.</p>
+  <p>If I were taking this past v1, the next steps are real auth, rate limiting on the action endpoint, and distributed tracing the moment a second service shows up. Thanks for watching.</p>
+</div>
+
+<p class="meta"><strong>Run order before recording:</strong> <code>npm install</code> → <code>npm run dev</code> → open <code>http://localhost:5174</code> with dealership 42 pre-loaded → have <code>system-design.md</code> open in a second tab.</p>
+
+</body>
+</html>
