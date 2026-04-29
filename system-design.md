@@ -241,7 +241,7 @@ Calling these out so the reviewer can see I know they exist - I just don't think
 
 ## 13. How I used GenAI in the design phase
 
-I used Google Antigravity as a **sparring partner**, not an author. My loop:
+I used Claude with Gemini 3.1 Pro as a **sparring partner**, not an author. My loop:
 
 1. **I wrote the problem in my own words first.** Forced me to actually understand it before letting an AI talk at me.
 2. **I asked for critique, not solutions.** Prompts like *"here is my proposed data model - what am I missing?"* and *"what are the failure modes of computing `isAging` at query time vs. as a stored column?"*. This surfaced things I would have missed (e.g. *"what timezone is `received_at` in?"*).
